@@ -62,30 +62,45 @@ if st.button("Calculate"):
     st.markdown("---")
     st.header("Results")
     total_volume = 0
-    total_profit = 0
-    total_percent_sum = 0
+    total_net_pnl = 0
+    total_gross_pnl = 0
+    total_fees = 0
     total_orders = 0
 
     for i in range(num_tasks):
         count = count_executed_orders(volatility, iterations, spreads[i], distances[i])
         volume_total = count * volumes[i]
-        profit_percent = spreads[i] - distances[i] - 2 * fee
-        profit_dollars = (profit_percent / 100) * (volume_total / 2)
+
+        gross_pnl_percent = spreads[i] - distances[i]  # without fees
+        net_pnl_percent = gross_pnl_percent - 2 * fee
+
+        gross_pnl_dollars = (gross_pnl_percent / 100) * (volume_total / 2)
+        net_pnl_dollars = (net_pnl_percent / 100) * (volume_total / 2)
+        fee_dollars = (2 * fee / 100) * (volume_total / 2)
 
         total_volume += volume_total
-        total_profit += profit_dollars
-        total_percent_sum += profit_percent
+        total_net_pnl += net_pnl_dollars
+        total_gross_pnl += gross_pnl_dollars
+        total_fees += fee_dollars
         total_orders += count
 
+        avg_volume_per_trade = volume_total / count if count > 0 else 0
+
         st.write(f"Task {i+1}: Spread = {spreads[i]}%, Distance = {distances[i]}%, Volume = {volumes[i]} → 🧮 {count} orders executed")
-        st.write(f"📦 Total Volume: ${volume_total:.2f}, 💰 Profit: ${profit_dollars:.4f} (Profitability: {profit_percent:.2f}%)")
+        st.write(f"📦 Total Volume: ${volume_total:.2f}, 💸 Fees: ${fee_dollars:.4f}")
+        st.write(f"📈 Gross PNL: ${gross_pnl_dollars:.4f}, Net PNL: ${net_pnl_dollars:.4f} (Per-trade yield: {net_pnl_percent:.2f}%)")
 
     st.markdown("---")
     st.header("Summary")
-    avg_percent = total_percent_sum / num_tasks if num_tasks > 0 else 0
+    avg_net_yield = (total_net_pnl / (total_volume / 2)) * 100 if total_volume > 0 else 0
     avg_liquidity_dollars = (2 / (2 * volatility)) * total_volume if volatility > 0 else 0
+    avg_volume_per_trade_total = total_volume / total_orders if total_orders > 0 else 0
+    net_pnl_per_trade = (avg_net_yield / 100) * (avg_volume_per_trade_total / 2)
 
     st.write(f"🔢 Total Volume of All Orders: ${total_volume:.2f}")
-    st.write(f"💰 Total Profit: ${total_profit:.4f}")
-    st.write(f"📈 Average Profitability: {avg_percent:.2f}%")
-    st.write(f"🌊 Average Liquidity Within 2% Range (based on volume): ${avg_liquidity_dollars:.2f}")
+    st.write(f"💸 Total Fees: ${total_fees:.4f}")
+    st.write(f"📈 Gross PNL (before fees): ${total_gross_pnl:.4f}")
+    st.write(f"✅ Net PNL (after fees): ${total_net_pnl:.4f}")
+    st.write(f"📊 Average Yield per Orderbook: {avg_net_yield:.2f}%")
+    st.write(f"📉 Average Volume per Trade: ${avg_volume_per_trade_total:.2f}, Net PNL per Trade: ${net_pnl_per_trade:.4f}")
+    st.write(f"🌊 Avg Liquidity Within 2% Range (volume-based): ${avg_liquidity_dollars:.2f}")
